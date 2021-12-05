@@ -24,7 +24,7 @@ const CountdownTimer = ({dropDate}) => {
       }
       
     }, 1000);
-  }, [])
+  }, [dropDate])
 
   return (
     <div className="timer-container">

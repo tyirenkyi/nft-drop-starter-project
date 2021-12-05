@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Program, Provider, web3 } from '@project-serum/anchor';
 import { MintLayout, TOKEN_PROGRAM_ID, Token } from '@solana/spl-token';
@@ -275,7 +275,7 @@ const CandyMachine = ({ walletAddress }) => {
     return provider;
   }
 
-  const getCandyMachineState = async() => {
+  const getCandyMachineState = useCallback(async() => {
     const provider = getProvider();
 
     const idl = await Program.fetchIdl(candyMachineProgram, provider);
@@ -322,18 +322,22 @@ const CandyMachine = ({ walletAddress }) => {
     );
 
     if(data.length !== 0) {
+      let mintsCopy = [...mints];
       for (const mint of data) {
         const response = await fetch(mint.data.uri);
         const parse = await response.json();
         console.log("Past Minted NFT", mint);
 
-        if(!mints.find((mint) => mint === parse.image))
-          setMints((prevState) => [...prevState, parse.image]);
+        if(!mintsCopy.find((mint) => mint.image === parse.image))
+          mintsCopy.push(parse);
       }
+      setMints([...mintsCopy]);
     }
 
     setIsLoadingMints(false);
-  }
+    
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const renderMintedItems = () => (
     <div className="gif-container">
@@ -341,7 +345,8 @@ const CandyMachine = ({ walletAddress }) => {
       <div className="gif-grid">
         {mints.map((mint, index) => (
           <div className="gif-item" key={index}>
-            <img src={mint} alt={`Minted NFT ${mint}`} />
+            <img src={mint.image} alt={`Minted NFT ${mint}`} />
+            <p>{mint.name}</p>
           </div>
         ))}
       </div>
@@ -362,13 +367,13 @@ const CandyMachine = ({ walletAddress }) => {
 
   useEffect(() => {
     getCandyMachineState();
-  }, [])
+  }, [getCandyMachineState])
 
   return (
     <div className="machine-container">
       {machineStats && renderDropTimer()}
       <p>Items Minted: {machineStats && machineStats.itemsRedeemed} / {machineStats && machineStats.itemsAvailable}</p>
-      {machineStats.itemsRedeemed === machineStats.itemsAvailable ? (
+      {machineStats && machineStats.itemsRedeemed === machineStats.itemsAvailable ? (
         <p className="sub-text">We're all Sold Out kids!</p>
       ) : (
         <>
